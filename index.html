@@ -1,0 +1,2971 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧课程表 - Smart Schedule</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a6a;
+            --text-muted: #8888a8;
+            --bg-primary: #f8f9fe;
+            --bg-secondary: #ffffff;
+            --shadow-sm: 0 2px 12px rgba(102, 126, 234, 0.08);
+            --shadow-md: 0 8px 24px rgba(102, 126, 234, 0.15);
+            --shadow-lg: 0 20px 60px rgba(102, 126, 234, 0.25);
+            --border-color: #e8ecf4;
+        }
+
+        [data-theme="dark"] {
+            --glass-bg: rgba(30, 30, 50, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #e8e8f0;
+            --text-secondary: #b8b8d0;
+            --text-muted: #8888a8;
+            --bg-primary: #12121e;
+            --bg-secondary: #1e1e32;
+            --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --border-color: #2a2a40;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            padding: 20px;
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        /* 动态背景 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(240, 147, 251, 0.08) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 顶部导航栏 */
+        .header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 28px 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: 10%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            letter-spacing: -0.5px;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .control-group:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .control-group label {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="number"] {
+            padding: 10px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        select:hover, input[type="number"]:hover {
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+        }
+
+        input[type="number"] {
+            width: 75px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        /* 实时时钟 */
+        .live-clock {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .clock-icon {
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* 视图切换按钮 */
+        .view-tabs {
+            display: flex;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px;
+            border-radius: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .view-tab {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .view-tab:hover::before {
+            left: 100%;
+        }
+
+        .view-tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+        }
+
+        .view-tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* 快捷操作按钮 */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: rotate(360deg) scale(1.1);
+        }
+
+        /* 统计面板 */
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 28px 36px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--card-color, var(--primary-gradient));
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--card-color, #667eea);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            background: var(--icon-bg, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-info h3 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* 内容区域 */
+        .content {
+            padding: 32px 36px;
+            min-height: 600px;
+            position: relative;
+        }
+
+        .view-container {
+            display: none;
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .view-container.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 周视图表格 */
+        .schedule-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .schedule-grid {
+            width: 100%;
+            min-width: 1100px;
+            border-collapse: separate;
+            border-spacing: 4px;
+            background: var(--bg-primary);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .schedule-grid th,
+        .schedule-grid td {
+            border: none;
+            padding: 0;
+            position: relative;
+        }
+
+        .schedule-grid thead th {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 18px 12px;
+            font-weight: 700;
+            font-size: 14px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .schedule-grid th.time-header {
+            width: 90px;
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4192 100%);
+        }
+
+        .schedule-grid tbody td {
+            height: 95px;
+            background: var(--bg-secondary);
+            vertical-align: top;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .schedule-grid tbody td:hover {
+            background: var(--bg-primary);
+        }
+
+        .time-cell {
+            writing-mode: horizontal-tb;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding: 10px;
+            background: var(--bg-secondary);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            border: 2px dashed var(--border-color);
+        }
+
+        .time-range {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        /* 课程色块 - 升级版 */
+        .course-block {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            top: 4px;
+            bottom: 4px;
+            border-radius: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .course-block::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .course-block:hover::before {
+            opacity: 1;
+        }
+
+        .course-block:hover {
+            transform: scale(1.03) translateY(-2px);
+            z-index: 10;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+        }
+
+        .course-block.conflict {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%) !important;
+            border: 2px solid #ff6b9d !important;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+        }
+
+        .course-block.conflict::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 107, 157, 0.1) 10px,
+                rgba(255, 107, 157, 0.1) 20px
+            );
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .course-block.conflict::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(255, 107, 157, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .course-block.conflict .course-name::before {
+            content: '冲突';
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            box-shadow: 0 2px 4px rgba(255, 107, 157, 0.3);
+        }
+
+        .course-block.conflict.shake-animation {
+            animation: gentlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes gentlePulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 4px 12px rgba(255, 107, 157, 0.3);
+            }
+            50% { 
+                transform: scale(1.02);
+                box-shadow: 0 6px 16px rgba(255, 107, 157, 0.4);
+            }
+        }
+
+        .course-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .course-info {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.95);
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .course-info-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .course-info-item i {
+            font-size: 10px;
+            width: 12px;
+        }
+
+        /* 列表视图 - 升级版 */
+        .list-controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--bg-primary);
+            padding: 20px 24px;
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 14px 20px 14px 50px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1), var(--shadow-sm);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: var(--text-muted);
+        }
+
+        .filter-select {
+            padding: 14px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .course-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+        }
+
+        .course-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 18px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .course-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background: var(--card-color, var(--primary-gradient));
+            transition: all 0.3s ease;
+        }
+
+        .course-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at top right, var(--card-color-rgb, rgba(102, 126, 234, 0.08)) 0%, transparent 70%);
+            transition: all 0.3s ease;
+        }
+
+        .course-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--card-color, #667eea);
+        }
+
+        .course-card:hover::before {
+            width: 8px;
+        }
+
+        .course-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .course-card-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .course-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--badge-bg, rgba(102, 126, 234, 0.1));
+            color: var(--badge-color, #667eea);
+            white-space: nowrap;
+        }
+
+        /* 课程卡片头部 */
+        .course-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .course-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .course-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .course-title h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* 课程详情列表 */
+        .course-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .detail-item i {
+            font-size: 16px;
+            color: var(--text-muted);
+            width: 20px;
+            text-align: center;
+        }
+
+        .course-card-details {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-detail-item {
+            display: contents;
+        }
+
+        .card-detail-icon {
+            font-size: 16px;
+            color: var(--text-muted);
+            width: 24px;
+            text-align: center;
+        }
+
+        .card-detail-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* 今日课程视图 - 升级版 */
+        .today-section {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .today-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 32px;
+            background: var(--primary-gradient);
+            border-radius: 20px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .today-header::before,
+        .today-header::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .today-header::before {
+            width: 200px;
+            height: 200px;
+            top: -100px;
+            right: -50px;
+        }
+
+        .today-header::after {
+            width: 150px;
+            height: 150px;
+            bottom: -70px;
+            left: -30px;
+        }
+
+        .today-date {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .today-day {
+            font-size: 20px;
+            opacity: 0.95;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+
+        .today-courses {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .today-course-item {
+            background: var(--bg-secondary);
+            border-left: 5px solid;
+            border-radius: 16px;
+            padding: 28px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .today-course-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 100%;
+            background: radial-gradient(circle at right, var(--item-color-rgb, rgba(102, 126, 234, 0.06)) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .today-course-item:hover {
+            transform: translateX(12px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .today-course-item:hover::after {
+            opacity: 1;
+        }
+
+        .today-course-item.upcoming {
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: var(--shadow-sm), 0 0 20px rgba(102, 126, 234, 0.2); }
+            50% { box-shadow: var(--shadow-sm), 0 0 40px rgba(102, 126, 234, 0.4); }
+        }
+
+        /* 今日课程新样式 */
+        .today-course {
+            background: var(--bg-secondary);
+            border-left: 5px solid var(--course-color, #667eea);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            gap: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .today-course:hover {
+            transform: translateX(8px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .today-time {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 80px;
+        }
+
+        .time-badge {
+            padding: 8px 16px;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .time-range {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .today-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .today-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .today-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .today-place {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .today-info {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .today-info span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .today-info i {
+            color: var(--text-muted);
+        }
+
+        .today-course-time-badge {
+            width: 54px;
+            height: 54px;
+            border-radius: 14px;
+            background: var(--primary-gradient);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+            flex-shrink: 0;
+        }
+
+        .today-course-time-label {
+            font-size: 10px;
+            font-weight: 600;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+
+        .today-course-main {
+            flex: 1;
+            margin: 0 28px;
+        }
+
+        .today-course-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .today-course-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .today-course-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .today-course-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .today-course-place {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .today-course-weeks {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* 实践课程模块 - 升级版 */
+        .practice-section {
+            margin-top: 40px;
+            padding-top: 36px;
+            border-top: 2px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title i {
+            font-size: 28px;
+            background: var(--warning-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .practice-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+        }
+
+        .practice-card {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+            border: 2px solid #ffd4d4;
+            border-radius: 18px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        [data-theme="dark"] .practice-card {
+            background: linear-gradient(135deg, rgba(250, 112, 154, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+            border-color: rgba(250, 112, 154, 0.3);
+        }
+
+        .practice-card::before {
+            content: '🎯';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 32px;
+            opacity: 0.3;
+        }
+
+        .practice-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 12px 32px rgba(250, 112, 154, 0.25);
+            border-color: #fa709a;
+        }
+
+        .practice-card-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            line-height: 1.4;
+            padding-right: 40px;
+        }
+
+        .practice-card-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .practice-grade {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--warning-gradient);
+            color: white;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(250, 112, 154, 0.3);
+        }
+
+        /* 弹窗模态框 - 升级版 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            animation: fadeInOverlay 0.3s ease;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 36px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(40px) scale(0.95); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 42px;
+            height: 42px;
+            border: none;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            z-index: 10;
+        }
+
+        .modal-close:hover {
+            background: #ff6b6b;
+            color: white;
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .modal-header {
+            margin-bottom: 28px;
+            padding-right: 50px;
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.3;
+            margin-bottom: 12px;
+        }
+
+        .modal-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .modal-info-grid {
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* 模态框新样式 */
+        .modal-body {
+            padding: 24px 0;
+        }
+
+        .detail-section {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-section:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-label i {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            flex: 1;
+            font-size: 15px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        /* 冲突警告框样式 */
+        .conflict-warning {
+            background: linear-gradient(135deg, rgba(255, 154, 158, 0.08) 0%, rgba(254, 207, 239, 0.08) 100%);
+            border: 1px solid rgba(255, 107, 157, 0.2);
+            border-radius: 16px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(255, 107, 157, 0.1);
+        }
+
+        .conflict-warning-header {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #c44569;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .conflict-warning-header i {
+            font-size: 18px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .conflict-warning-body {
+            padding: 16px 20px;
+        }
+
+        .conflict-count {
+            font-size: 13px;
+            color: #c44569;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .conflict-courses {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .conflict-course {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 107, 157, 0.1);
+        }
+
+        .conflict-course:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 157, 0.15);
+        }
+
+        .conflict-course.current {
+            background: linear-gradient(135deg, rgba(255, 154, 158, 0.15) 0%, rgba(254, 207, 239, 0.15) 100%);
+            border: 2px solid rgba(255, 107, 157, 0.3);
+        }
+
+        .conflict-course-badge {
+            background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .conflict-course-info {
+            flex: 1;
+        }
+
+        .conflict-course-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #c44569;
+            margin-bottom: 4px;
+        }
+
+        .conflict-course-detail {
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .conflict-course-detail i {
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        .modal-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-value {
+            font-size: 15px;
+            color: var(--text-primary);
+            line-height: 1.7;
+            font-weight: 500;
+        }
+
+        .modal-value.teachers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .teacher-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .teacher-tag:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 周次芯片 */
+        .week-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .week-chip {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .week-chip.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .week-chip:hover:not(.active) {
+            background: var(--border-color);
+            transform: translateY(-2px);
+        }
+
+        .teacher-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-primary);
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .teacher-tag:hover {
+            border-color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .teacher-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--primary-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .teacher-title-badge {
+            font-size: 11px;
+            background: var(--success-gradient);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 空状态提示 - 升级版 */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .empty-state-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-subtext {
+            font-size: 14px;
+            margin-top: 8px;
+            color: var(--text-muted);
+        }
+
+        /* 加载状态 - 骨架屏 */
+        .loading-skeleton {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .skeleton-card {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 2px solid var(--border-color);
+        }
+
+        .skeleton-line {
+            height: 16px;
+            background: linear-gradient(90deg, var(--border-color) 25%, var(--bg-secondary) 50%, var(--border-color) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-line.short {
+            width: 60%;
+        }
+
+        .skeleton-line.medium {
+            width: 80%;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* 返回顶部按钮 */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border: none;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 999;
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-4px) scale(1.1);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        /* Toast提示 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            z-index: 9999;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* 响应式设计优化 */
+        @media (max-width: 1200px) {
+            .stats-panel {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 16px;
+                padding: 24px;
+            }
+
+            .schedule-grid {
+                min-width: 900px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 16px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .logo-section {
+                flex-direction: column;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header-controls {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .control-group {
+                flex: 1;
+                min-width: 140px;
+            }
+
+            .view-tabs {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .view-tab {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            .quick-actions {
+                display: none;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .stats-panel {
+                grid-template-columns: repeat(2, 1fr);
+                padding: 20px;
+                gap: 12px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 22px;
+            }
+
+            .stat-info h3 {
+                font-size: 22px;
+            }
+
+            .schedule-grid th,
+            .time-cell {
+                padding: 10px 6px;
+                font-size: 11px;
+            }
+
+            .schedule-grid td {
+                height: 65px;
+            }
+
+            .course-block {
+                padding: 6px 8px;
+                border-radius: 8px;
+            }
+
+            .course-name {
+                font-size: 11px;
+            }
+
+            .course-info {
+                font-size: 9px;
+            }
+
+            .course-list {
+                grid-template-columns: 1fr;
+            }
+
+            .list-controls {
+                flex-direction: column;
+                padding: 16px;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            .filter-select {
+                width: 100%;
+            }
+
+            .today-date {
+                font-size: 32px;
+            }
+
+            .today-course-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 16px;
+                padding: 20px;
+            }
+
+            .today-course-time-badge {
+                align-self: flex-start;
+            }
+
+            .today-course-main {
+                margin: 0;
+            }
+
+            .today-course-right {
+                text-align: left;
+            }
+
+            .modal-content {
+                padding: 24px;
+                margin: 10px;
+            }
+
+            .modal-title {
+                font-size: 22px;
+            }
+
+            .modal-info-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .practice-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 打印样式 */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                border: none;
+            }
+
+            .header-controls,
+            .quick-actions,
+            .back-to-top,
+            .action-btn,
+            .bg-animation {
+                display: none !important;
+            }
+
+            .course-block:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 动态背景 -->
+    <div class="bg-animation"></div>
+
+    <div class="container">
+        <!-- 顶部导航栏 -->
+        <div class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">📚</div>
+                    <div>
+                        <h1>智慧课程表</h1>
+                        <p class="header-subtitle">Smart Course Schedule System</p>
+                    </div>
+                </div>
+
+                <div class="header-controls">
+                    <div class="control-group">
+                        <label><i class="fas fa-calendar-alt"></i> 学期</label>
+                        <select id="termSelect">
+                            <option value="2025-2026-2">2025-2026 第2学期</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>第</label>
+                        <input type="number" id="weekInput" min="1" max="18" value="1">
+                        <label>周</label>
+                    </div>
+
+                    <div class="live-clock">
+                        <i class="fas fa-clock clock-icon"></i>
+                        <span id="liveClock">--:--:--</span>
+                    </div>
+
+                    <div class="view-tabs">
+                        <button class="view-tab active" data-view="week">
+                            <i class="fas fa-calendar-week"></i> 周视图
+                        </button>
+                        <button class="view-tab" data-view="list">
+                            <i class="fas fa-list"></i> 列表
+                        </button>
+                        <button class="view-tab" data-view="today">
+                            <i class="fas fa-sun"></i> 今日
+                        </button>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="action-btn" onclick="toggleConflictWarning()" title="切换冲突提示" id="conflictToggle">
+                            <i class="fas fa-bell" id="conflictIcon"></i>
+                        </button>
+                        <button class="action-btn" onclick="toggleTheme()" title="切换主题">
+                            <i class="fas fa-moon" id="themeIcon"></i>
+                        </button>
+                        <button class="action-btn" onclick="exportSchedule()" title="导出课表">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="action-btn" onclick="window.print()" title="打印课表">
+                            <i class="fas fa-print"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计面板 -->
+        <div class="stats-panel" id="statsPanel">
+            <div class="stat-card" style="--card-color: #667eea;">
+                <div class="stat-icon" style="--icon-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalCourses">0</h3>
+                    <p>本周课程数</p>
+                </div>
+            </div>
+
+            <div class="stat-card" style="--card-color: #4facfe;">
+                <div class="stat-icon" style="--icon-bg: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalTeachers">0</h3>
+                    <p>授课教师</p>
+                </div>
+            </div>
+
+            <div class="stat-card" style="--card-color: #43e97b;">
+                <div class="stat-icon" style="--icon-bg: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalHours">0</h3>
+                    <p>本周学时</p>
+                </div>
+            </div>
+
+            <div class="stat-card" style="--card-color: #fa709a;">
+                <div class="stat-icon" style="--icon-bg: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="totalCredits">0</h3>
+                    <p>实践学分</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="content">
+            <!-- 周视图 -->
+            <div class="view-container active" id="weekView">
+                <div class="schedule-wrapper">
+                    <table class="schedule-grid" id="scheduleTable">
+                        <thead>
+                            <tr>
+                                <th class="time-header"><i class="fas fa-clock"></i> 节次</th>
+                                <th><i class="fas fa-sun"></i> 周一</th>
+                                <th><i class="fas fa-cloud-sun"></i> 周二</th>
+                                <th><i class="fas fa-cloud"></i> 周三</th>
+                                <th><i class="fas fa-cloud-rain"></i> 周四</th>
+                                <th><i class="fas fa-moon"></i> 周五</th>
+                                <th><i class="fas fa-smile"></i> 周六</th>
+                                <th><i class="fas fa-heart"></i> 周日</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleBody">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 列表视图 -->
+            <div class="view-container" id="listView">
+                <div class="list-controls">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="搜索课程名、教师、教室...">
+                    </div>
+                    <select class="filter-select" id="dayFilter">
+                        <option value="">全部星期</option>
+                        <option value="星期一">周一</option>
+                        <option value="星期二">周二</option>
+                        <option value="星期三">周三</option>
+                        <option value="星期四">周四</option>
+                        <option value="星期五">周五</option>
+                        <option value="星期六">周六</option>
+                        <option value="星期日">周日</option>
+                    </select>
+                    <select class="filter-select" id="sortSelect">
+                        <option value="time">按时间排序</option>
+                        <option value="name">按课程名排序</option>
+                    </select>
+                </div>
+                <div class="course-list" id="courseList">
+                    <!-- 动态生成 -->
+                </div>
+
+                <!-- 实践课程 -->
+                <div class="practice-section" id="practiceSection">
+                    <h2 class="section-title">
+                        <i class="fas fa-rocket"></i>
+                        实践课程
+                    </h2>
+                    <div class="practice-list" id="practiceList">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 今日课程视图 -->
+            <div class="view-container" id="todayView">
+                <div class="today-section">
+                    <div class="today-header">
+                        <div class="today-date" id="todayDate"></div>
+                        <div class="today-day" id="todayDay"></div>
+                    </div>
+                    <div class="today-courses" id="todayCourses">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 课程详情弹窗 -->
+    <div class="modal-overlay" id="courseModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle"></h2>
+                <p class="modal-subtitle" id="modalSubtitle"></p>
+            </div>
+            <div class="modal-info-grid">
+                <div class="modal-label"><i class="fas fa-user-tie"></i> 授课教师</div>
+                <div class="modal-value teachers" id="modalTeachers"></div>
+
+                <div class="modal-label"><i class="fas fa-map-marker-alt"></i> 上课地点</div>
+                <div class="modal-value" id="modalPlace"></div>
+
+                <div class="modal-label"><i class="fas fa-clock"></i> 上课时间</div>
+                <div class="modal-value" id="modalTime"></div>
+
+                <div class="modal-label"><i class="fas fa-calendar-check"></i> 周次安排</div>
+                <div class="modal-value" id="modalWeekRule"></div>
+
+                <div class="modal-label"><i class="fas fa-hashtag"></i> 课程编号</div>
+                <div class="modal-value" id="modalCourseId"></div>
+
+                <div class="modal-label"><i class="fas fa-award"></i> 学分信息</div>
+                <div class="modal-value" id="modalCredit"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 课程详情模态框 -->
+    <div class="modal-overlay" id="courseModal">
+        <div class="modal-content">
+            <!-- 内容将通过 JavaScript 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 返回顶部按钮 -->
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- 快捷键提示 -->
+    <div style="position: fixed; bottom: 20px; left: 20px; background: var(--bg-secondary); color: var(--text-secondary); padding: 12px 18px; border-radius: 12px; font-size: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); z-index: 100;">
+        <strong>快捷键：</strong>
+        <kbd style="background: var(--bg-primary); padding: 2px 8px; border-radius: 4px; margin: 0 3px;">←</kbd>
+        <kbd style="background: var(--bg-primary); padding: 2px 8px; border-radius: 4px; margin: 0 3px;">→</kbd>
+        切换周数 ·
+        <kbd style="background: var(--bg-primary); padding: 2px 8px; border-radius: 4px; margin: 0 3px;">ESC</kbd>
+        关闭弹窗
+    </div>
+
+    <script>
+        // 全局数据
+        let scheduleData = null;
+        let currentWeek = 1;
+        let courseColors = {};
+        let isDarkMode = false;
+        let showConflictWarning = true; // 默认显示冲突提示
+
+        // 节次时间配置
+        const sectionTimes = {
+            '1': '08:00-08:45',
+            '2': '08:55-09:40',
+            '3': '10:00-10:45',
+            '4': '10:55-11:40',
+            '5': '14:00-14:45',
+            '6': '14:55-15:40',
+            '7': '16:00-16:45',
+            '8': '16:55-17:40',
+            '9': '19:00-19:45',
+            '10': '19:55-20:40'
+        };
+
+        // 星期映射
+        const dayMap = {
+            '星期一': 1,
+            '星期二': 2,
+            '星期三': 3,
+            '星期四': 4,
+            '星期五': 5,
+            '星期六': 6,
+            '星期日': 7
+        };
+
+        const dayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+        // 颜色调色板
+        const colorPalette = [
+            { main: '#667eea', light: '#8b9eff' },
+            { main: '#764ba2', light: '#9d6fc4' },
+            { main: '#f093fb', light: '#f5b8fd' },
+            { main: '#f5576c', light: '#f88392' },
+            { main: '#4facfe', light: '#78c4ff' },
+            { main: '#00f2fe', light: '#4df8fe' },
+            { main: '#43e97b', light: '#74f29d' },
+            { main: '#38f9d7', light: '#69fbdE' },
+            { main: '#fa709a', light: '#fb9db8' },
+            { main: '#fee140', light: '#fef07a' },
+            { main: '#30cfd0', light: '#5edddE' },
+            { main: '#330867', light: '#583394' },
+            { main: '#a8edea', light: '#c5f5f3' },
+            { main: '#fed6e3', light: '#fee8ef' },
+            { main: '#ff9a9e', light: '#ffb8bb' },
+            { main: '#fecfef', light: '#fdf0f5' }
+        ];
+
+        // 根据课程名生成固定颜色
+        function getCourseColor(courseName) {
+            if (!courseColors[courseName]) {
+                const index = Object.keys(courseColors).length % colorPalette.length;
+                courseColors[courseName] = colorPalette[index];
+            }
+            return courseColors[courseName];
+        }
+
+        // 解析教师字段
+        function parseTeachers(teacherStr) {
+            if (!teacherStr) return [];
+            const teachers = teacherStr.split(';').map(t => t.trim());
+            return teachers.map(t => {
+                const parts = t.split('/');
+                return {
+                    id: parts[0] || '',
+                    name: parts[1] || '',
+                    title: parts[2] || ''
+                };
+            });
+        }
+
+        // 解析节次
+        function parseSections(timeStr) {
+            if (!timeStr) return { start: 1, end: 1 };
+            if (timeStr.includes('-')) {
+                const [start, end] = timeStr.split('-').map(Number);
+                return { start, end };
+            }
+            const sec = parseInt(timeStr);
+            return { start: sec, end: sec };
+        }
+
+        // 合并周次规则显示
+        function mergeWeekRules(courses) {
+            const weekSet = new Set(courses.map(c => c.week));
+            const weeks = Array.from(weekSet).sort((a, b) => a - b);
+            if (weeks.length === 0) return '';
+
+            const ranges = [];
+            let start = weeks[0];
+            let prev = weeks[0];
+
+            for (let i = 1; i <= weeks.length; i++) {
+                if (i < weeks.length && weeks[i] === prev + 1) {
+                    prev = weeks[i];
+                } else {
+                    if (start === prev) {
+                        ranges.push(`${start}`);
+                    } else {
+                        ranges.push(`${start}-${prev}`);
+                    }
+                    if (i < weeks.length) {
+                        start = weeks[i];
+                        prev = weeks[i];
+                    }
+                }
+            }
+            return ranges.join('、');
+        }
+
+        // 更新实时时钟
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('zh-CN', { hour12: false });
+            document.getElementById('liveClock').textContent = timeString;
+        }
+
+        // 切换暗色模式
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+            const icon = document.getElementById('themeIcon');
+            icon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        // 切换冲突提示
+        function toggleConflictWarning() {
+            showConflictWarning = !showConflictWarning;
+            const icon = document.getElementById('conflictIcon');
+            const toggleBtn = document.getElementById('conflictToggle');
+
+            if (showConflictWarning) {
+                icon.className = 'fas fa-bell';
+                toggleBtn.style.background = 'rgba(255, 107, 157, 0.2)';
+                toggleBtn.style.color = '#ff6b9d';
+                showToast('✅ 冲突提示已开启');
+            } else {
+                icon.className = 'fas fa-bell-slash';
+                toggleBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+                toggleBtn.style.color = '#888';
+                showToast('❌ 冲突提示已关闭');
+            }
+
+            localStorage.setItem('conflictWarning', showConflictWarning);
+            renderWeekView(); // 重新渲染周视图
+        }
+
+        // 导出课表
+        function exportSchedule() {
+            if (!scheduleData) return;
+
+            let content = '=== 我的课程表 ===\n\n';
+            content += `学期：2025-2026 第2学期\n`;
+            content += `导出时间：${new Date().toLocaleString()}\n\n`;
+
+            content += '【理论课程】\n\n';
+            const groupedCourses = {};
+            scheduleData.course.forEach(c => {
+                const key = `${c.kchId}-${c.day}-${c.time}`;
+                if (!groupedCourses[key]) {
+                    groupedCourses[key] = { ...c, weeks: [c.week] };
+                } else {
+                    groupedCourses[key].weeks.push(c.week);
+                }
+            });
+
+            Object.values(groupedCourses).sort((a, b) => {
+                return dayMap[a.day] - dayMap[b.day] || parseSections(a.time).start - parseSections(b.time).start;
+            }).forEach(course => {
+                const teachers = parseTeachers(course.teacher);
+                content += `📚 ${course.name}\n`;
+                content += `   👨‍🏫 教师：${teachers.map(t => t.name).join(', ')}\n`;
+                content += `   📍 教室：${course.place}\n`;
+                content += `   ⏰ 时间：${course.day} 第${course.time}节\n`;
+                content += `   📅 周次：第${mergeWeekRules([course])}周\n\n`;
+            });
+
+            if (scheduleData.practice && scheduleData.practice.length > 0) {
+                content += '\n【实践课程】\n\n';
+                scheduleData.practice.forEach(p => {
+                    const teachers = parseTeachers(p.teacherName);
+                    content += `🎯 ${p.courseName}\n`;
+                    content += `   👨‍🏫 教师：${teachers.map(t => t.name).join(', ')}\n`;
+                    content += `   ⭐ 学分：${p.grade}学分\n`;
+                    content += `   📅 时间：${p.time}\n\n`;
+                });
+            }
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `课程表_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('✅ 课表已导出！');
+        }
+
+        // 显示提示消息
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // 返回顶部
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 监听滚动
+        window.addEventListener('scroll', () => {
+            const btn = document.getElementById('backToTop');
+            if (btn) {
+                if (window.scrollY > 300) {
+                    btn.classList.add('show');
+                } else {
+                    btn.classList.remove('show');
+                }
+            }
+        });
+
+        // 加载数据
+        async function loadData() {
+            try {
+                const scheduleBody = document.getElementById('scheduleBody');
+                if (scheduleBody) {
+                    scheduleBody.innerHTML = generateSkeleton();
+                }
+
+                const response = await fetch('./data.json');
+                const json = await response.json();
+                scheduleData = json.data;
+
+                currentWeek = getCurrentWeek();
+                const weekInput = document.getElementById('weekInput');
+                if (weekInput) {
+                    weekInput.value = currentWeek;
+                }
+
+                renderAllViews();
+                updateStats();
+
+                console.log('✅ 数据加载成功');
+            } catch (error) {
+                console.error('❌ 数据加载失败:', error);
+                const scheduleBody = document.getElementById('scheduleBody');
+                if (scheduleBody) {
+                    scheduleBody.innerHTML =
+                        `<tr><td colspan="8"><div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div class="empty-state-text">加载数据失败</div>
+                            <div class="empty-state-subtext">请检查 data.json 文件</div>
+                        </div></td></tr>`;
+                }
+            }
+        }
+
+        // 生成骨架屏
+        function generateSkeleton() {
+            let html = '';
+            for (let i = 1; i <= 10; i++) {
+                html += `<tr>`;
+                html += `<td><div class="skeleton-line short"></div></td>`;
+                for (let j = 1; j <= 7; j++) {
+                    html += `<td><div class="skeleton-line medium"></div></td>`;
+                }
+                html += `</tr>`;
+            }
+            return html;
+        }
+
+        // 获取当前周数
+        function getCurrentWeek() {
+            return 1;
+        }
+
+        // 更新统计数据
+        function updateStats() {
+            if (!scheduleData) return;
+
+            const weekInput = document.getElementById('weekInput');
+            if (!weekInput) return;
+
+            const week = parseInt(weekInput.value);
+            const weekCourses = scheduleData.course.filter(c => c.week === week);
+
+            const totalCoursesEl = document.getElementById('totalCourses');
+            const totalTeachersEl = document.getElementById('totalTeachers');
+            const totalHoursEl = document.getElementById('totalHours');
+            const totalCreditsEl = document.getElementById('totalCredits');
+
+            if (!totalCoursesEl || !totalTeachersEl || !totalHoursEl || !totalCreditsEl) return;
+
+            const uniqueCourses = new Set(weekCourses.map(c => c.kchId));
+            totalCoursesEl.textContent = uniqueCourses.size;
+
+            const teachers = new Set();
+            weekCourses.forEach(c => {
+                parseTeachers(c.teacher).forEach(t => teachers.add(t.name));
+            });
+            totalTeachersEl.textContent = teachers.size;
+
+            let totalHours = 0;
+            weekCourses.forEach(c => {
+                const sections = parseSections(c.time);
+                totalHours += (sections.end - sections.start + 1);
+            });
+            totalHoursEl.textContent = totalHours;
+
+            let totalCredits = 0;
+            if (scheduleData.practice) {
+                scheduleData.practice.forEach(p => {
+                    totalCredits += parseFloat(p.grade) || 0;
+                });
+            }
+            totalCreditsEl.textContent = totalCredits.toFixed(1);
+        }
+
+        // 渲染所有视图
+        function renderAllViews() {
+            renderWeekView();
+            renderListView();
+            renderTodayView();
+        }
+
+        // 渲染周视图
+        function renderWeekView() {
+            const tbody = document.getElementById('scheduleBody');
+            if (!tbody) return;
+
+            const weekInput = document.getElementById('weekInput');
+            if (!weekInput) return;
+
+            const week = parseInt(weekInput.value);
+
+            const weekCourses = scheduleData.course.filter(c => c.week === week);
+
+            // 检测冲突
+            const conflicts = new Set();
+            const courseMap = {};
+
+            weekCourses.forEach(course => {
+                const dayNum = dayMap[course.day];
+                const sections = parseSections(course.time);
+                const key = `${dayNum}-${sections.start}-${sections.end}`;
+
+                if (courseMap[key]) {
+                    conflicts.add(key);
+                } else {
+                    courseMap[key] = key;
+                }
+            });
+
+            let html = '';
+            for (let section = 1; section <= 10; section++) {
+                html += `<tr>`;
+                html += `<td><div class="time-cell">
+                            <div>${section}</div>
+                            <div class="time-range">${sectionTimes[section]}</div>
+                         </div></td>`;
+
+                for (let day = 1; day <= 7; day++) {
+                    const coursesInCell = weekCourses.filter(c => {
+                        const cDay = dayMap[c.day];
+                        const secs = parseSections(c.time);
+                        return cDay === day && secs.start === section;
+                    });
+
+                    html += `<td data-day="${day}" data-section="${section}">`;
+
+                    if (coursesInCell.length > 0) {
+                        coursesInCell.forEach((course) => {
+                            const sections = parseSections(course.time);
+                            const key = `${day}-${sections.start}-${sections.end}`;
+                            const isConflict = conflicts.has(key);
+                            const color = getCourseColor(course.name);
+
+                            const heightPercent = (sections.end - sections.start + 1) * 100;
+
+                            // 根据冲突提示开关决定是否添加抖动动画
+                            const conflictClass = isConflict ? 'conflict' : '';
+                            const shakeClass = isConflict && showConflictWarning ? 'shake-animation' : '';
+
+                            html += `<div class="course-block ${conflictClass} ${shakeClass}"
+                                        style="background: linear-gradient(135deg, ${color.main} 0%, ${color.light} 100%);
+                                               height: calc(${heightPercent}% - 8px);"
+                                        onclick="showCourseDetail('${course.kchId}', ${week})"
+                                        title="${course.name}">
+                                        <div class="course-name">${course.name}</div>
+                                        <div class="course-info">
+                                            <div class="course-info-item">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                <span>${course.place}</span>
+                                            </div>
+                                            <div class="course-info-item">
+                                                <i class="fas fa-user"></i>
+                                                <span>${parseTeachers(course.teacher)[0].name}</span>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                        });
+                    }
+
+                    html += `</td>`;
+                }
+
+                html += `</tr>`;
+            }
+
+            tbody.innerHTML = html;
+        }
+
+        // 渲染列表视图
+        function renderListView() {
+            const container = document.getElementById('courseList');
+            if (!container) return;
+
+            const searchInput = document.getElementById('searchInput');
+            const dayFilter = document.getElementById('dayFilter');
+            const sortSelect = document.getElementById('sortSelect');
+
+            if (!searchInput || !dayFilter || !sortSelect) return;
+
+            const searchTerm = searchInput.value.toLowerCase();
+            const dayFilterValue = dayFilter.value;
+            const sortBy = sortSelect.value;
+
+            let courses = [...scheduleData.course];
+
+            if (searchTerm) {
+                courses = courses.filter(c =>
+                    c.name.toLowerCase().includes(searchTerm) ||
+                    c.teacher.toLowerCase().includes(searchTerm) ||
+                    c.place.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (dayFilterValue) {
+                courses = courses.filter(c => c.day === dayFilterValue);
+            }
+
+            if (sortBy === 'name') {
+                courses.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+            } else {
+                courses.sort((a, b) => {
+                    const dayA = dayMap[a.day];
+                    const dayB = dayMap[b.day];
+                    if (dayA !== dayB) return dayA - dayB;
+                    const secA = parseSections(a.time).start;
+                    const secB = parseSections(b.time).start;
+                    return secA - secB;
+                });
+            }
+
+            const groupedCourses = {};
+            courses.forEach(c => {
+                const key = `${c.kchId}-${c.day}-${c.time}`;
+                if (!groupedCourses[key]) {
+                    groupedCourses[key] = { ...c, allWeeks: [c.week] };
+                } else {
+                    groupedCourses[key].allWeeks.push(c.week);
+                }
+            });
+
+            const uniqueCourses = Object.values(groupedCourses);
+
+            if (uniqueCourses.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <div class="empty-state-text">未找到匹配的课程</div>
+                </div>`;
+                return;
+            }
+
+            let html = '';
+            uniqueCourses.forEach(course => {
+                const teachers = parseTeachers(course.teacher);
+                const weekRule = mergeWeekRules([course]);
+                const color = getCourseColor(course.name);
+
+                html += `<div class="course-card" style="--card-color: ${color.main}; --card-color-rgb: ${color.main}33;"
+                            onclick="showCourseDetail('${course.kchId}', ${course.week})">
+                    <div class="course-header">
+                        <div class="course-title">
+                            <span class="course-dot" style="background: ${color.main};"></span>
+                            <h3>${course.name}</h3>
+                        </div>
+                        <div class="course-badge" style="background: ${color.main}20; color: ${color.main};">
+                            ${course.kchId}
+                        </div>
+                    </div>
+                    <div class="course-details">
+                        <div class="detail-item">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>${teachers.map(t => t.name).join(', ')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${course.day} 第${course.time}节</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${course.place}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>第${weekRule}周</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 渲染今日视图
+        function renderTodayView() {
+            const container = document.getElementById('todayCourses');
+            if (!container) return;
+
+            const weekInput = document.getElementById('weekInput');
+            if (!weekInput) return;
+
+            const today = new Date().getDay();
+            const dayNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const todayName = dayNames[today];
+            const week = parseInt(weekInput.value);
+
+            const todayCourses = scheduleData.course.filter(c => c.day === todayName && c.week === week);
+            const sortedCourses = todayCourses.sort((a, b) => {
+                const secA = parseSections(a.time).start;
+                const secB = parseSections(b.time).start;
+                return secA - secB;
+            });
+
+            if (sortedCourses.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-icon">🎉</div>
+                    <div class="empty-state-text">今天没有课程</div>
+                    <div class="empty-state-subtext">好好休息一下吧！</div>
+                </div>`;
+                return;
+            }
+
+            let html = '';
+            sortedCourses.forEach(course => {
+                const teachers = parseTeachers(course.teacher);
+                const sections = parseSections(course.time);
+                const color = getCourseColor(course.name);
+                const timeRange = sectionTimes[sections.start] || '';
+
+                html += `<div class="today-course" style="--course-color: ${color.main};">
+                    <div class="today-time">
+                        <div class="time-badge">${sections.start}-${sections.end}</div>
+                        <div class="time-range">${timeRange}</div>
+                    </div>
+                    <div class="today-content">
+                        <div class="today-header">
+                            <h3>${course.name}</h3>
+                            <span class="today-place">${course.place}</span>
+                        </div>
+                        <div class="today-info">
+                            <span><i class="fas fa-user"></i> ${teachers.map(t => t.name).join(', ')}</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 显示课程详情
+        function showCourseDetail(kchId, week) {
+            const course = scheduleData.course.find(c => c.kchId === kchId && c.week === week);
+            if (!course) return;
+
+            const allInstances = scheduleData.course.filter(c => c.kchId === kchId);
+            const teachers = parseTeachers(course.teacher);
+            const sections = parseSections(course.time);
+            const color = getCourseColor(course.name);
+            const timeRange = sectionTimes[sections.start] || '';
+
+            // 检查冲突
+            const weekCourses = scheduleData.course.filter(c => c.week === week);
+            const conflicts = weekCourses.filter(c => 
+                c.day === course.day && 
+                c.time === course.time && 
+                c.kchId !== course.kchId
+            );
+
+            const modal = document.getElementById('courseModal');
+            if (!modal) return;
+
+            const modalContent = modal.querySelector('.modal-content');
+            if (!modalContent) return;
+
+            let conflictHtml = '';
+            if (conflicts.length > 0) {
+                conflictHtml = `
+                    <div class="conflict-warning">
+                        <div class="conflict-warning-header">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>时间冲突提示</span>
+                        </div>
+                        <div class="conflict-warning-body">
+                            <p class="conflict-count">此时间段共有 <strong>${conflicts.length + 1}</strong> 门课程冲突</p>
+                            <div class="conflict-courses">
+                                <div class="conflict-course current">
+                                    <div class="conflict-course-badge">当前</div>
+                                    <div class="conflict-course-info">
+                                        <div class="conflict-course-name">${course.name}</div>
+                                        <div class="conflict-course-detail">
+                                            <i class="fas fa-map-marker-alt"></i> ${course.place}
+                                        </div>
+                                    </div>
+                                </div>
+                                ${conflicts.map(c => `
+                                <div class="conflict-course">
+                                    <div class="conflict-course-info">
+                                        <div class="conflict-course-name">${c.name}</div>
+                                        <div class="conflict-course-detail">
+                                            <i class="fas fa-map-marker-alt"></i> ${c.place} · 
+                                            <i class="fas fa-user"></i> ${parseTeachers(c.teacher)[0].name}
+                                        </div>
+                                    </div>
+                                </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            modalContent.innerHTML = `
+                <div class="modal-header" style="background: linear-gradient(135deg, ${color.main} 0%, ${color.light} 100%);">
+                    <h2>${course.name}</h2>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    ${conflictHtml}
+                    <div class="detail-section">
+                        <div class="detail-label">
+                            <i class="fas fa-hashtag"></i>
+                            <span>课程编号</span>
+                        </div>
+                        <div class="detail-value">${course.kchId}</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>授课教师</span>
+                        </div>
+                        <div class="detail-value">
+                            ${teachers.map(t => `<span class="teacher-tag">${t.name} (${t.title})</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">
+                            <i class="fas fa-clock"></i>
+                            <span>上课时间</span>
+                        </div>
+                        <div class="detail-value">
+                            ${course.day} 第${course.time}节 (${timeRange})
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>上课地点</span>
+                        </div>
+                        <div class="detail-value">${course.place}</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>上课周次</span>
+                        </div>
+                        <div class="detail-value">
+                            <div class="week-chips">
+                                ${allInstances.map(c => {
+                                    const isActive = c.week === week;
+                                    return `<span class="week-chip ${isActive ? 'active' : ''}">${c.week}</span>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            const modal = document.getElementById('courseModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        // 点击模态框外部关闭
+        const courseModal = document.getElementById('courseModal');
+        if (courseModal) {
+            courseModal.addEventListener('click', (e) => {
+                if (e.target.id === 'courseModal') {
+                    closeModal();
+                }
+            });
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            if (e.key === 't' && e.ctrlKey) {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            // 初始化主题
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                isDarkMode = true;
+                document.documentElement.setAttribute('data-theme', 'dark');
+                const themeIcon = document.getElementById('themeIcon');
+                if (themeIcon) {
+                    themeIcon.className = 'fas fa-sun';
+                }
+            }
+
+            // 初始化冲突提示
+            const savedConflictWarning = localStorage.getItem('conflictWarning');
+            if (savedConflictWarning !== null) {
+                showConflictWarning = savedConflictWarning === 'true';
+            }
+            
+            // 更新冲突提示按钮状态
+            const conflictIcon = document.getElementById('conflictIcon');
+            const conflictToggle = document.getElementById('conflictToggle');
+            if (conflictIcon && conflictToggle) {
+                if (showConflictWarning) {
+                    conflictIcon.className = 'fas fa-bell';
+                    conflictToggle.style.background = 'rgba(255, 107, 157, 0.2)';
+                    conflictToggle.style.color = '#ff6b9d';
+                } else {
+                    conflictIcon.className = 'fas fa-bell-slash';
+                    conflictToggle.style.background = 'rgba(255, 255, 255, 0.2)';
+                    conflictToggle.style.color = '#888';
+                }
+            }
+
+            // 更新时钟
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // 加载数据
+            loadData();
+
+            // 视图切换
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const viewId = tab.dataset.view;
+                    document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+                    const targetView = document.getElementById(viewId);
+                    if (targetView) {
+                        targetView.classList.add('active');
+                    }
+                });
+            });
+
+            // 周数变化
+            const weekInput = document.getElementById('weekInput');
+            if (weekInput) {
+                weekInput.addEventListener('change', () => {
+                    updateStats();
+                    renderWeekView();
+                    renderTodayView();
+                });
+            }
+
+            // 搜索和过滤
+            const searchInput = document.getElementById('searchInput');
+            const dayFilter = document.getElementById('dayFilter');
+            const sortSelect = document.getElementById('sortSelect');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', renderListView);
+            }
+            if (dayFilter) {
+                dayFilter.addEventListener('change', renderListView);
+            }
+            if (sortSelect) {
+                sortSelect.addEventListener('change', renderListView);
+            }
+        });
+    </script>
+</body>
+</html>
